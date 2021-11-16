@@ -21,8 +21,8 @@
           <div class="block text-sm font-medium text-gray-700">
             GitHub
           </div>
-          <div class="grid grid-cols-3 gap-6 mt-0">
-            <div class="col-span-3 sm:col-span-1">
+          <div class="grid grid-cols-4 gap-6 mt-0">
+            <div class="col-span-4 sm:col-span-1">
               <div class="mt-1 flex rounded-md shadow-sm">
                     <span
                         class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -33,7 +33,7 @@
                        class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"/>
               </div>
             </div>
-            <div class="col-span-3 sm:col-span-1">
+            <div class="col-span-4 sm:col-span-1">
               <div class="mt-1 flex rounded-md shadow-sm">
                     <span
                         class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -44,7 +44,18 @@
                        class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"/>
               </div>
             </div>
-            <div class="col-span-3 sm:col-span-1">
+            <div class="col-span-4 sm:col-span-1">
+              <div class="mt-1 flex rounded-md shadow-sm">
+                    <span
+                        class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                      branch
+                    </span>
+                <input type="text" id="github-branch" placeholder="main"
+                       v-model="branch"
+                       class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"/>
+              </div>
+            </div>
+            <div class="col-span-4 sm:col-span-1">
               <div class="mt-1 flex rounded-md shadow-sm">
                     <span
                         class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -55,6 +66,19 @@
                        class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"/>
               </div>
             </div>
+          </div>
+
+          <div class="mt-6 flex rounded-md shadow-sm">
+              <span
+                  class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                GitHub Repo
+              </span>
+            <input type="text" readonly v-model="githubrepo"
+                   class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none sm:text-sm border-gray-300 bg-gray-50 cursor-not-allowed"/>
+            <a :href="githubrepo" target="_blank"
+               class="inline-flex items-center px-3 rounded-r-md border border-l-0 rounded-none rounded-r-md border-gray-300 bg-gray-50 text-gray-500 text-sm">
+              <ExternalLinkIcon class="h-5 w-5 text-gray-500"/>
+            </a>
           </div>
 
           <div v-if="errormessage != null" class="text-red-500 mt-6">{{ errormessage }}</div>
@@ -143,7 +167,9 @@ export default {
       errormessage: null,
       owner: 'nielsnuebel',
       repo: 'lighthouse',
-      path: ''
+      branch: 'main',
+      path: '',
+      githubrepo: ''
     }
   },
   created () {
@@ -159,6 +185,11 @@ export default {
     if (params.get('path') !== null) {
       this.path = params.get('path')
     }
+    if (params.get('branch') !== null) {
+      this.branch = params.get('branch')
+    }
+
+    this.changeRepo()
     this.spinner = true
     this.errormessage = null
     this.json = null
@@ -183,25 +214,53 @@ export default {
       if (newVal !== oldVal && newVal !== '') {
         this.showButton = true
       }
+      this.changeRepo()
     },
     repo: function (newVal, oldVal) {
       if (newVal !== oldVal && newVal !== '') {
         this.showButton = true
       }
+      this.changeRepo()
     },
     path: function (newVal, oldVal) {
       if (newVal !== oldVal && newVal !== '') {
         this.showButton = true
       }
+      this.changeRepo()
+    },
+    branch: function (newVal, oldVal) {
+      if (newVal !== oldVal && newVal !== '') {
+        this.showButton = true
+      }
+      this.changeRepo()
     }
   },
   methods: {
+    changeRepo () {
+      this.githubrepo = 'https://github.com/'
+      if (this.owner !== '') {
+        this.githubrepo = this.githubrepo + this.owner + '/'
+      }
+      if (this.repo !== '') {
+        this.githubrepo = this.githubrepo + this.repo + '/'
+      }
+      if (this.branch !== '') {
+        this.githubrepo = this.githubrepo + 'tree/' + this.branch + '/'
+      }
+      if (this.path !== '') {
+        this.githubrepo = this.githubrepo + this.path
+      }
+    },
     fetchFiles () {
       this.json = null
       this.files = null
       this.spinner = true
       this.errormessage = null
-      fetch('https://api.github.com/repos/' + this.owner + '/' + this.repo + '/contents/' + this.path, {
+      let filesurl = 'https://api.github.com/repos/' + this.owner + '/' + this.repo + '/contents/' + this.path
+      if (this.branch !== '' && this.branch !== 'main') {
+        filesurl = filesurl + '?ref=' + this.branch
+      }
+      fetch(filesurl, {
         method: 'GET',
         headers: new Headers({
           'Content-Type': 'application/json',
