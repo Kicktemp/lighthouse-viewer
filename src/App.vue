@@ -1,22 +1,20 @@
 <template>
   <div>
-  <div v-if="spinner" class="flex fixed justify-center items-center bottom-0 top-0 left-0 right-0 bg-black bg-opacity-30">
+    <div v-if="spinner" class="flex fixed justify-center items-center bottom-0 top-0 left-0 right-0 bg-black bg-opacity-30">
     <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
   </div>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="lg:text-center">
-      <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Kicktemp</h2>
-      <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-        Lighthouse Viewer
-      </p>
-      <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-        Lorem ipsum dolor sit amet consect adipisicing elit. Possimus magnam voluptatum cupiditate veritatis in
-        accusamus quisquam.
-      </p>
-      <div v-if="ratelimit.remaining < ratelimit.limit" class="mt-4 max-w-2xl text-xl lg:mx-auto text-red-500">
-        Request Limit {{ ratelimit.limit }}/{{ ratelimit.remaining }} - Reset {{ ratelimit.resetdate }}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="lg:text-center">
+        <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Kicktemp</h2>
+        <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+          Lighthouse Viewer
+        </p>
+        <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+        </p>
+        <div v-if="ratelimit != null && ratelimit.remaining < ratelimit.limit" class="mt-4 max-w-2xl text-xl lg:mx-auto text-red-500">
+          Request Limit {{ ratelimit.limit }}/{{ ratelimit.remaining }} - Reset {{ ratelimit.resetdate }}
+        </div>
       </div>
-    </div>
     <div class=" md:col-span-2 mt-10">
       <div class="shadow sm:rounded-md sm:overflow-hidden">
         <div class="px-4 pt-0 bg-white sm:p-6">
@@ -65,10 +63,9 @@
               JSON
             </label>
             <div class="mt-1">
-              <select @change="fetchJson($event)" name="json"
-                      class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <select @change="fetchJson($event)" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                 <option>Lighthouse auswählen</option>
-                <option v-for="file in files" :key="file.name" :value="file.download_url">{{ file.name }}</option>
+                <option v-for="file in files.filter(file => { file.type == 'file' })" :key="file.name" :value="file.download_url">{{ file.name }}</option>
               </select>
             </div>
           </div>
@@ -103,16 +100,16 @@
                   class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
                 Date
               </span>
-              <input type="text" readonly :value="json.fetchTime"
+              <input type="text" readonly :value="fetchTime"
                      class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300 bg-gray-50 cursor-not-allowed"/>
             </div>
           </template>
 
         </div>
-        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+        <div v-if="showButton" class="px-4 py-3 bg-gray-50 text-right sm:px-6">
           <button @click="fetchFiles"
                   class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Save
+            Get Json Files
           </button>
         </div>
       </div>
@@ -139,8 +136,10 @@ export default {
     return {
       ratelimit: null,
       json: null,
+      fetchTime: null,
       files: null,
       spinner: false,
+      showButton: true,
       errormessage: null,
       owner: 'nielsnuebel',
       repo: 'lighthouse',
@@ -148,36 +147,22 @@ export default {
     }
   },
   created () {
+    moment.locale('de-DE')
     const uri = window.location.search.substring(1)
     const params = new URLSearchParams(uri)
-    if (params.get('url') !== null) {
-      this.github = params.get('url')
+    if (params.get('owner') !== null) {
+      this.owner = params.get('owner')
+    }
+    if (params.get('repo') !== null) {
+      this.repo = params.get('repo')
+    }
+    if (params.get('path') !== null) {
+      this.path = params.get('path')
     }
     this.spinner = true
     this.errormessage = null
     this.json = null
-    fetch('https://api.github.com/repos/' + this.owner + '/' + this.repo + '/contents/' + this.path, {
-      method: 'GET',
-      headers: new Headers({
-        'Content-Type': 'application/json',
-        Accept: 'application/vnd.github.v3+json'
-      })
-    })
-      .then((response) => {
-        if (!response.ok) {
-          console.log(response.headers)
-          throw new Error('HTTP status ' + response.json().message)
-        }
-        return response.json()
-      })
-      .then(json => {
-        this.files = json
-        this.spinner = false
-      })
-      .catch((error) => {
-        this.errormessage = error
-        this.spinner = false
-      })
+    this.files = null
 
     fetch('https://api.github.com/rate_limit', {
       method: 'GET',
@@ -188,13 +173,32 @@ export default {
     })
       .then(r => r.json())
       .then(json => {
-        json.rate.resetdate = moment(new Date(json.rate.reset * 1000)).format('hh:mm DD.MM.YYYY')
+        json.rate.resetdate = moment(new Date(json.rate.reset * 1000)).format('HH:mm DD.MM.YYYY')
         this.ratelimit = json.rate
+        this.spinner = false
       })
+  },
+  watch: {
+    owner: function (newVal, oldVal) {
+      if (newVal !== oldVal && newVal !== '') {
+        this.showButton = true
+      }
+    },
+    repo: function (newVal, oldVal) {
+      if (newVal !== oldVal && newVal !== '') {
+        this.showButton = true
+      }
+    },
+    path: function (newVal, oldVal) {
+      if (newVal !== oldVal && newVal !== '') {
+        this.showButton = true
+      }
+    }
   },
   methods: {
     fetchFiles () {
       this.json = null
+      this.files = null
       this.spinner = true
       this.errormessage = null
       fetch('https://api.github.com/repos/' + this.owner + '/' + this.repo + '/contents/' + this.path, {
@@ -213,10 +217,12 @@ export default {
         .then(json => {
           this.files = json
           this.spinner = false
+          this.showButton = false
         })
         .catch((error) => {
           this.errormessage = error
           this.spinner = false
+          this.showButton = true
         })
     },
     fetchJson (url) {
@@ -225,7 +231,8 @@ export default {
       fetch(url.target.value)
         .then(r => r.json())
         .then(json => {
-          json.fetchTime = moment(String(json.fetchTime)).format('hh:mm DD.MM.YYYY')
+          this.fetchTime = json.fetchTime
+          this.fetchTime = moment(String(this.fetchTime)).format('HH:mm DD.MM.YYYY')
           this.json = json
           this.spinner = false
         })
