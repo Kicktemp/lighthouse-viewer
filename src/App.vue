@@ -5,19 +5,19 @@
   </div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div class="lg:text-center">
-        <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Kicktemp</h2>
+        <a class="text-base text-indigo-600 font-semibold tracking-wide uppercase" href="https://kicktemp.com" target="_blank ">by Kicktemp</a>
         <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
           Lighthouse Viewer
         </p>
         <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
         </p>
-        <div v-if="ratelimit != null && ratelimit.remaining < ratelimit.limit" class="mt-4 max-w-2xl text-xl lg:mx-auto text-red-500">
+        <div v-if="ratelimit != null && ratelimit.remaining < (ratelimit.limit - 40)" class="mt-4 max-w-2xl text-xl lg:mx-auto text-red-500">
           Request Limit {{ ratelimit.limit }}/{{ ratelimit.remaining }} - Reset {{ ratelimit.resetdate }}
         </div>
       </div>
     <div class=" md:col-span-2 mt-10">
       <div class="shadow sm:rounded-md sm:overflow-hidden">
-        <div class="px-4 pt-0 bg-white sm:p-6">
+        <div class=" bg-white p-6">
           <div class="block text-sm font-medium text-gray-700">
             GitHub
           </div>
@@ -70,7 +70,7 @@
             </div>
           </div>
 
-          <template v-if="json">
+          <div v-if="json" class="space-y-6 mt-6">
             <div class="mt-1 flex rounded-md shadow-sm">
               <span
                   class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -103,7 +103,7 @@
               <input type="text" readonly :value="fetchTime"
                      class="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300 bg-gray-50 cursor-not-allowed"/>
             </div>
-          </template>
+          </div>
 
         </div>
         <div v-if="showButton" class="px-4 py-3 bg-gray-50 text-center sm:px-6">
@@ -114,10 +114,10 @@
         </div>
       </div>
     </div>
+  </div>
     <div class="mt-10">
       <VueLighthouseViewer v-if="json" :json="json"/>
     </div>
-  </div>
   </div>
 </template>
 
